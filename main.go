@@ -134,11 +134,13 @@ func getGames(w http.ResponseWriter, r *http.Request) {
 
 // Handler function to get a game by ID
 func getGame(w http.ResponseWriter, r *http.Request) {
+	// Set the Content-Type header to application/json
+	w.Header().Set("Content-Type", "application/json")
+
 	params := mux.Vars(r)
-	// id := params["id"]
 	hexId := params["id"]
-	// log.Printf("😀 HEX ID!: %v", hexId)
 	var game Game
+
 	// Specify the database and collection
 	collection := getCollection()
 	id, err := primitive.ObjectIDFromHex(hexId)
@@ -146,12 +148,13 @@ func getGame(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Game not found", http.StatusNotFound)
 		return
 	}
+
 	// Create a filter to find the document by ID
 	gameDoc := collection.FindOne(context.Background(), bson.M{"_id": id}).Decode(&game)
 
 	// Find the document by ID
 	if gameDoc != nil {
-		log.Printf("Loooooool %v", gameDoc)
+		log.Printf("Find the document by ID %v", gameDoc)
 	}
 
 	fmt.Printf("Found a single document: %+v\n", game)
