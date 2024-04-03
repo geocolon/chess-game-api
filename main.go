@@ -9,8 +9,6 @@ import (
 	"os"
 	"time"
 
-	// "../messanger"
-
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/bson"
@@ -79,7 +77,7 @@ func main() {
 	router.HandleFunc("/games/{id}", deleteGame).Methods("DELETE")
 
 	// WebSocket endpoint
-	// router.HandleFunc("/ws", messenger.ServeWebSocket)
+	router.HandleFunc("/ws", messenger.ServeWebSocket)
 
 	// Start HTTP server
 	port := os.Getenv("PORT")
@@ -88,6 +86,9 @@ func main() {
 	}
 	log.Printf("Server listening on port %s", port)
 	log.Fatal(http.ListenAndServe(":"+port, router))
+
+	// Initialize and run the WebSocket server
+	messenger.RunWebSocketServer()
 
 }
 

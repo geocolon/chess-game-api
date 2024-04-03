@@ -48,6 +48,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleMessages() {
+
 	for {
 		// Get next message from broadcast channel
 		msg := <-broadcast
@@ -63,7 +64,7 @@ func handleMessages() {
 	}
 }
 
-func messanger() {
+func messenger() {
 	// Configure WebSocket route
 	http.HandleFunc("/ws", handleConnections)
 	// Start listening for incoming chat messages
