@@ -3,16 +3,21 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"time"
 
+	// "../messanger"
+
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 // Game represents a chess game
@@ -49,19 +54,32 @@ func main() {
 		log.Fatalf("Failed to connect to MongoDB: %v", err)
 	}
 	defer func() {
+		err = client.Ping(context.Background(), readpref.Primary())
 		if err := client.Disconnect(context.Background()); err != nil {
 			log.Printf("Error disconnecting from MongoDB: %v", err)
+			log.Fatal(err)
 		}
+		Database, err := client.ListDatabaseNames(context.Background(), bson.M{})
+		if err != nil {
+			log.Fatalf("Failed to connect to MongoDB: %v", err)
+		} else {
+			fmt.Println("Connected to MongoDB!")
+		}
+		fmt.Println(Database)
 	}()
 
 	// Initialize router
 	router := mux.NewRouter()
 
 	// Define API endpoints
+	router.HandleFunc("/games", getGames).Methods("GET")
 	router.HandleFunc("/games", createGame).Methods("POST")
 	router.HandleFunc("/games/{id}", getGame).Methods("GET")
 	router.HandleFunc("/games/{id}", updateGame).Methods("PUT")
 	router.HandleFunc("/games/{id}", deleteGame).Methods("DELETE")
+
+	// WebSocket endpoint
+	// router.HandleFunc("/ws", messenger.ServeWebSocket)
 
 	// Start HTTP server
 	port := os.Getenv("PORT")
@@ -70,12 +88,23 @@ func main() {
 	}
 	log.Printf("Server listening on port %s", port)
 	log.Fatal(http.ListenAndServe(":"+port, router))
+
 }
 
 // Helper function to get the MongoDB collection
 func getCollection() *mongo.Collection {
 	return client.Database("chess").Collection("games")
 }
+
+// func testCollection() *mongo.Collection {
+// 	err = client.Ping(context.TODO(), nil)
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
+// 	fmt.Println("Connected to MongoDB!")
+// 	return client.Database("Chess").Collection("sample_data")
+
+// }
 
 // Handler function to create a new game
 func createGame(w http.ResponseWriter, r *http.Request) {
@@ -91,16 +120,47 @@ func createGame(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
+func getGames(w http.ResponseWriter, r *http.Request) {
+	// params := mux.Vars(r)
+	// id := params
+	// var game Game
+	// err := getCollection().Find(context.Background(), bson.M{"_id": id}).Decode(&game)
+	// if err != nil {
+	// 	http.Error(w, "Game not found", http.StatusNotFound)
+	// 	return
+	// }
+	// json.NewEncoder(w).Encode(game)
+}
+
 // Handler function to get a game by ID
 func getGame(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-	id := params["id"]
+	// id := params["id"]
+	hexId := params["id"]
+	log.Printf("😀 HEX ID!: %v", hexId)
 	var game Game
-	err := getCollection().FindOne(context.Background(), bson.M{"_id": id}).Decode(&game)
+	// Specify the database and collection
+	collection := getCollection()
+	// err := getCollection().ObjectIDFromHex("65170b42b99efdd0b07d42de")
+	id, err := primitive.ObjectIDFromHex(hexId)
 	if err != nil {
 		http.Error(w, "Game not found", http.StatusNotFound)
 		return
 	}
+	log.Printf("😀 Found ID!: %v", id)
+
+	// Create a filter to find the document by ID
+	// filter := bson.M{"_id": id}
+	twopac := collection.FindOne(context.Background(), bson.M{"_id": id}).Decode(&game)
+
+	// Create a variable to hold the result
+	// var result bson.M // or an appropriate struct
+	// err = collection.FindOne(context.TODO(), filter).Decode(&result)
+	if twopac != nil {
+		log.Printf("Loooooool %v", twopac)
+	}
+
+	fmt.Printf("Found a single document: %+v\n", game)
 	json.NewEncoder(w).Encode(game)
 }
 
