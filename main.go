@@ -137,27 +137,21 @@ func getGame(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	// id := params["id"]
 	hexId := params["id"]
-	log.Printf("😀 HEX ID!: %v", hexId)
+	// log.Printf("😀 HEX ID!: %v", hexId)
 	var game Game
 	// Specify the database and collection
 	collection := getCollection()
-	// err := getCollection().ObjectIDFromHex("65170b42b99efdd0b07d42de")
 	id, err := primitive.ObjectIDFromHex(hexId)
 	if err != nil {
 		http.Error(w, "Game not found", http.StatusNotFound)
 		return
 	}
-	log.Printf("😀 Found ID!: %v", id)
-
 	// Create a filter to find the document by ID
-	// filter := bson.M{"_id": id}
-	twopac := collection.FindOne(context.Background(), bson.M{"_id": id}).Decode(&game)
+	gameDoc := collection.FindOne(context.Background(), bson.M{"_id": id}).Decode(&game)
 
-	// Create a variable to hold the result
-	// var result bson.M // or an appropriate struct
-	// err = collection.FindOne(context.TODO(), filter).Decode(&result)
-	if twopac != nil {
-		log.Printf("Loooooool %v", twopac)
+	// Find the document by ID
+	if gameDoc != nil {
+		log.Printf("Loooooool %v", gameDoc)
 	}
 
 	fmt.Printf("Found a single document: %+v\n", game)
