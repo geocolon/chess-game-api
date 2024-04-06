@@ -11,6 +11,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
+	"github.com/rs/cors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -77,13 +78,22 @@ func main() {
 	router.HandleFunc("/games/{id}", updateGame).Methods("PUT")
 	router.HandleFunc("/games/{id}", deleteGame).Methods("DELETE")
 
+	// Set up CORS middleware
+	c := cors.New(cors.Options{
+		AllowedOrigins: []string{"http://localhost:3000"},
+		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
+	})
+
+	// Wrap the router with CORS middleware
+	handler := c.Handler(router)
+
 	// Start HTTP server
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 	log.Printf("Server listening on port %s", port)
-	log.Fatal(http.ListenAndServe(":"+port, router))
+	log.Fatal(http.ListenAndServe(":"+port, handler))
 
 }
 
@@ -101,19 +111,34 @@ func getCollection() *mongo.Collection {
 // 	return client.Database("Chess").Collection("sample_data")
 
 // }
+type PlayerNames struct {
+	Player1Name string `json:"player1Name"`
+	Player2Name string `json:"player2Name"`
+}
 
 func createGame(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-
+	log.Printf("Received request: %s %s", r.Method, r.URL.Path)
 	// Parse the request body into a Game struct
 	var game Game
+	var playerNames PlayerNames
+	json.NewDecoder(r.Body).Decode(&playerNames)
 	err := json.NewDecoder(r.Body).Decode(&game)
 	if err != nil {
 		http.Error(w, "Failed to decode request body", http.StatusBadRequest)
 		return
 	}
 
+	// Extract player names from the struct
+	player1 := playerNames.Player1Name
+	player2 := playerNames.Player2Name
+
+	gameName := fmt.Sprintf("%s & %s", player1, player2)
 	// Set CreatedAt and LastUpdated timestamps
+	game.Player1 = player1
+	game.Player2 = player2
+	game.GameName = gameName
+	game.Moves = []string{}
 	game.CreatedAt = time.Now()
 	game.LastUpdated = game.CreatedAt
 
@@ -165,6 +190,7 @@ func createGame(w http.ResponseWriter, r *http.Request) {
 func getGame(w http.ResponseWriter, r *http.Request) {
 	// Set the Content-Type header to application/json
 	w.Header().Set("Content-Type", "application/json")
+	log.Printf("Received request: %s %s", r.Method, r.URL.Path)
 
 	params := mux.Vars(r)
 	hexId := params["id"]
@@ -192,6 +218,9 @@ func getGame(w http.ResponseWriter, r *http.Request) {
 
 // Handler function to update a game by ID
 func updateGame(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	log.Printf("Received request: %s %s", r.Method, r.URL.Path)
+	// Get the ID parameter from the URL
 	params := mux.Vars(r)
 	id := params["id"]
 
@@ -234,6 +263,8 @@ func updateGame(w http.ResponseWriter, r *http.Request) {
 
 // Handler function to delete a game by ID
 func deleteGame(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	log.Printf("Received request: %s %s", r.Method, r.URL.Path)
 	params := mux.Vars(r)
 	id := params["id"]
 
