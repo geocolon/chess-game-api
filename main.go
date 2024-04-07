@@ -111,34 +111,19 @@ func getCollection() *mongo.Collection {
 // 	return client.Database("Chess").Collection("sample_data")
 
 // }
-type PlayerNames struct {
-	Player1Name string `json:"player1Name"`
-	Player2Name string `json:"player2Name"`
-}
 
 func createGame(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	log.Printf("Received request: %s %s", r.Method, r.URL.Path)
 	// Parse the request body into a Game struct
 	var game Game
-	var playerNames PlayerNames
-	json.NewDecoder(r.Body).Decode(&playerNames)
 	err := json.NewDecoder(r.Body).Decode(&game)
 	if err != nil {
 		http.Error(w, "Failed to decode request body", http.StatusBadRequest)
 		return
 	}
 
-	// Extract player names from the struct
-	player1 := playerNames.Player1Name
-	player2 := playerNames.Player2Name
-
-	gameName := fmt.Sprintf("%s & %s", player1, player2)
 	// Set CreatedAt and LastUpdated timestamps
-	game.Player1 = player1
-	game.Player2 = player2
-	game.GameName = gameName
-	game.Moves = []string{}
 	game.CreatedAt = time.Now()
 	game.LastUpdated = game.CreatedAt
 
